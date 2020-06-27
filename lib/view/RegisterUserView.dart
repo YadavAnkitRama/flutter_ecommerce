@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_ecommerce/service/user_api.dart';
+import 'package:progress_dialog/progress_dialog.dart';
+
+ProgressDialog pr;
 
 class RegisterUserView extends StatefulWidget {
   @override
@@ -8,6 +11,7 @@ class RegisterUserView extends StatefulWidget {
 
 class _RegisterUserViewState extends State<RegisterUserView> {
   String _username, _email, _password, _phone, _address;
+  bool _obsecure = true;
   final _formKey = GlobalKey<FormState>();
   final nameController = TextEditingController();
   final emailController = TextEditingController();
@@ -15,6 +19,8 @@ class _RegisterUserViewState extends State<RegisterUserView> {
   final phoneController = TextEditingController();
   final addressController = TextEditingController();
   String message = '';
+
+  
 
   @override
   void dispose() {
@@ -25,6 +31,8 @@ class _RegisterUserViewState extends State<RegisterUserView> {
 
   @override
   Widget build(BuildContext context) {
+    pr = new ProgressDialog(context, showLogs: true, isDismissible: false);
+    pr.style(message: 'Sending Information for Registration, Please wait...');
     return Scaffold(
       body: Container(
         padding: EdgeInsets.symmetric(horizontal: 20.0),
@@ -40,7 +48,7 @@ class _RegisterUserViewState extends State<RegisterUserView> {
                   _showPassword(),
                   _showPhone(),
                   _showAddress(),
-                  Text(message),
+                  //_showMessage(),
                   _showButtons(),
                 ],
               ),
@@ -49,6 +57,10 @@ class _RegisterUserViewState extends State<RegisterUserView> {
         ),
       ),
     );
+  }
+
+  Widget _showMessage() {
+    return Text(message);
   }
 
   Widget _showTitle() {
@@ -71,7 +83,7 @@ class _RegisterUserViewState extends State<RegisterUserView> {
             hintText: 'Enter Username, Minimum Of Lenght 6',
             icon: Icon(
               Icons.face,
-              color: Colors.grey,
+              color: Colors.indigo[900],
             )),
       ),
     );
@@ -90,7 +102,7 @@ class _RegisterUserViewState extends State<RegisterUserView> {
             hintText: 'Enter Valid Email',
             icon: Icon(
               Icons.mail,
-              color: Colors.grey,
+              color: Colors.indigo[900],
             )),
       ),
     );
@@ -103,14 +115,24 @@ class _RegisterUserViewState extends State<RegisterUserView> {
         controller: passwordController,
         onSaved: (val) => _password = val,
         validator: (val) => val.length < 6 ? 'Password is too short' : null,
-        obscureText: true,
+        obscureText: _obsecure,
         decoration: InputDecoration(
+            suffixIcon: GestureDetector(
+              onTap: () {
+                setState(() {
+                  _obsecure = !_obsecure;
+                });
+              },
+              child: Icon(
+                _obsecure ? Icons.visibility : Icons.visibility_off,
+              ),
+            ),
             border: OutlineInputBorder(),
             labelText: 'Password',
             hintText: 'Enter Password',
             icon: Icon(
               Icons.lock,
-              color: Colors.grey,
+              color: Colors.indigo[900],
             )),
       ),
     );
@@ -123,14 +145,13 @@ class _RegisterUserViewState extends State<RegisterUserView> {
         controller: phoneController,
         onSaved: (val) => _phone = val,
         validator: (val) => val.length < 6 ? 'Phone is too short' : null,
-        obscureText: true,
         decoration: InputDecoration(
             border: OutlineInputBorder(),
             labelText: 'Phone',
             hintText: 'Enter Password',
             icon: Icon(
-              Icons.lock,
-              color: Colors.grey,
+              Icons.phone_iphone,
+              color: Colors.indigo[900],
             )),
       ),
     );
@@ -143,14 +164,13 @@ class _RegisterUserViewState extends State<RegisterUserView> {
         controller: addressController,
         onSaved: (val) => _address = val,
         validator: (val) => val.length < 6 ? 'Address is too short' : null,
-        obscureText: true,
         decoration: InputDecoration(
             border: OutlineInputBorder(),
             labelText: 'Address',
             hintText: 'Enter Address',
             icon: Icon(
-              Icons.lock,
-              color: Colors.grey,
+              Icons.location_on,
+              color: Colors.indigo[900],
             )),
       ),
     );
@@ -162,7 +182,7 @@ class _RegisterUserViewState extends State<RegisterUserView> {
       child: Column(
         children: <Widget>[
           RaisedButton(
-            color: Colors.indigo[800],
+            color: Colors.indigo[900],
             onPressed: () {
               debugPrint('Register Pressed');
               _onSubmit();
@@ -189,13 +209,14 @@ class _RegisterUserViewState extends State<RegisterUserView> {
     );
   }
 
-  void _onSubmit() async{
+  void _onSubmit() async {
     final form = _formKey.currentState;
     if (_formKey.currentState.validate()) {
+      pr.show();
       form.save();
       debugPrint('valid');
       debugPrint(
-          'Username : $_username, Email : $_email, Password : $_password');
+          'Username : $_username, Email : $_email, Password : $_password, Phone : $_phone, Address : $_address');
       var name = nameController.text;
       var email = emailController.text;
       var password = passwordController.text;
@@ -209,15 +230,26 @@ class _RegisterUserViewState extends State<RegisterUserView> {
       print(rsp);
       if (rsp.containsKey('status')) {
         if (rsp['status'] == 1) {
-          setState(() {
-            message = rsp['status_text'];
-          });
+          // setState(() {
+          //   message = rsp['status_text'];
+          // });
           if (rsp['status'] == 1) {
-            Navigator.pushNamed(context, '/login_user');
+            Future.delayed(Duration(seconds: 0)).then((value) {
+              pr.hide().whenComplete(() {
+                debugPrint('Success PD Stopped');
+                Navigator.pushNamed(context, '/login_user');
+              });
+            });
           }
         } else {
           setState(() {
-            message = 'Login Failed, Please Try Again';
+            Future.delayed(Duration(seconds: 0)).then((value) {
+              pr.hide().whenComplete(() {
+                setState(() {
+                  message = 'Registration Failed, Please Try Again';
+                });
+              });
+            });
           });
         }
       }

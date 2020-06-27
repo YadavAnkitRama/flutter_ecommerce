@@ -1,18 +1,36 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_ecommerce/service/user_api.dart';
+import 'package:progress_dialog/progress_dialog.dart';
+
+ProgressDialog pr;
 
 class LoginUserView extends StatefulWidget {
   @override
   _LoginUserViewState createState() => _LoginUserViewState();
 }
 
-class _LoginUserViewState extends State<LoginUserView> {
+class _LoginUserViewState extends State<LoginUserView>
+    with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   bool _obsecure = true;
   String _email, _password;
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
   String message = '';
+
+  AnimationController _animationController;
+  Animation<Color> _colorTween;
+
+  void initState() {
+    _animationController = AnimationController(
+      duration: Duration(milliseconds: 1800),
+      vsync: this,
+    );
+    _colorTween = _animationController
+        .drive(ColorTween(begin: Colors.white, end: Colors.indigo[900]));
+    _animationController.repeat();
+    super.initState();
+  }
 
   @override
   void dispose() {
@@ -23,6 +41,8 @@ class _LoginUserViewState extends State<LoginUserView> {
 
   @override
   Widget build(BuildContext context) {
+    pr = new ProgressDialog(context, showLogs: true, isDismissible: false);
+    pr.style(message: 'checking, Please wait...');
     return Scaffold(
       body: Container(
         padding: EdgeInsets.symmetric(horizontal: 20.0),
@@ -35,7 +55,7 @@ class _LoginUserViewState extends State<LoginUserView> {
                   _showTitle(),
                   _showEmail(),
                   _showPassword(),
-                  Text(message),
+                  //_showMessage(),
                   _showButtons(),
                 ],
               ),
@@ -44,6 +64,10 @@ class _LoginUserViewState extends State<LoginUserView> {
         ),
       ),
     );
+  }
+
+  Widget _showMessage() {
+    return Text(message);
   }
 
   Widget _showTitle() {
@@ -66,7 +90,7 @@ class _LoginUserViewState extends State<LoginUserView> {
             hintText: 'Enter Valid Email',
             icon: Icon(
               Icons.mail,
-              color: Colors.grey,
+              color: Colors.indigo[900],
             )),
       ),
     );
@@ -81,6 +105,11 @@ class _LoginUserViewState extends State<LoginUserView> {
         validator: (val) => val.length < 6 ? 'Password is too short' : null,
         obscureText: _obsecure,
         decoration: InputDecoration(
+          border: OutlineInputBorder(
+            borderSide: BorderSide(
+              color: Colors.indigo[900],
+            )
+          ),
             suffixIcon: GestureDetector(
               onTap: () {
                 setState(() {
@@ -91,12 +120,12 @@ class _LoginUserViewState extends State<LoginUserView> {
                 _obsecure ? Icons.visibility : Icons.visibility_off,
               ),
             ),
-            border: OutlineInputBorder(),
+            
             labelText: 'Password',
             hintText: 'Enter Password',
             icon: Icon(
               Icons.lock,
-              color: Colors.grey,
+              color: Colors.indigo[900],
             )),
       ),
     );
@@ -108,7 +137,7 @@ class _LoginUserViewState extends State<LoginUserView> {
       child: Column(
         children: <Widget>[
           RaisedButton(
-            color: Colors.indigo[800],
+            color: Colors.indigo[900],
             onPressed: () {
               debugPrint('Login Pressed');
               _onSubmit();
@@ -137,30 +166,38 @@ class _LoginUserViewState extends State<LoginUserView> {
   void _onSubmit() async {
     final form = _formKey.currentState;
     if (_formKey.currentState.validate()) {
+      pr.show();
       form.save();
-      debugPrint('valid');
+      //debugPrint('valid');
       debugPrint('Email : $_email, Password : $_password');
-      
+
       var email = emailController.text;
       var password = passwordController.text;
-      setState(() {
-        message = 'Please wait......';
-      });
+      // setState(() {
+      //   message = 'Please wait......';
+      // });
       var rsp = await loginUser(email, password);
-      print(email);
-      print(password);
       print(rsp);
       if (rsp.containsKey('status')) {
         if (rsp['status'] == 1) {
-          setState(() {
-            message = rsp['status_text'];
-          });
+          // setState(() {
+          //   message = rsp['status_text'];
+          // });
           if (rsp['status'] == 1) {
-            Navigator.pushNamed(context, '/home_user');
+            Future.delayed(Duration(seconds: 0)).then((value) {
+              pr.hide().whenComplete(() {
+                debugPrint('Success PD Stopped');
+                Navigator.pushNamed(context, '/home_user');
+              });
+            });
           }
         } else {
-          setState(() {
-            message = 'Login Failed, Please Try Again';
+          Future.delayed(Duration(seconds: 0)).then((value) {
+            pr.hide().whenComplete(() {
+              setState(() {
+                message = 'Login Failed, Please Try Again';
+              });
+            });
           });
         }
       }
